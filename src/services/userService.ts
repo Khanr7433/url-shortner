@@ -74,10 +74,17 @@ export const getStats = async () => {
         .from('urls')
         .select('*', { count: 'exact', head: true });
 
+    // Fetch clicks for all URLs to calculate total (optimized to select only clicks column)
+    const { data: clicksData, error: clicksError } = await supabase
+        .from('urls')
+        .select('clicks');
+
+    const totalClicks = (clicksData || []).reduce((sum, item) => sum + (item.clicks || 0), 0);
+
     return {
         totalUsers: usersCount || 0,
         totalUrls: urlsCount || 0,
-        totalClicks: 0 // Aggregation is expensive in free tier Supabase without functions, defaulting to 0 for now or we can implement a separate query.
+        totalClicks: totalClicks
     };
 };
 
