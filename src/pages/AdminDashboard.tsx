@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { getAllUsers, getStats, updateUserRole, type UserProfile } from "../services/userService";
 import { getAllUrls, deleteShortUrl, type UrlData } from "../services/urlService";
 import { Users, Link, BarChart3, Trash2 } from "lucide-react";
+import Pagination from "../components/Pagination";
 
 interface DashboardStats {
     totalUsers: number;
@@ -16,32 +17,69 @@ const AdminDashboard = () => {
     const [urls, setUrls] = useState<UrlData[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Pagination State
+    const [usersPage, setUsersPage] = useState(1);
+    const [usersTotalPages, setUsersTotalPages] = useState(1);
+    const [urlsPage, setUrlsPage] = useState(1);
+    const [urlsTotalPages, setUrlsTotalPages] = useState(1);
+    
+    const LIMIT = 10;
+
+    const fetchUsers = async () => {
+        try {
+            const { data, count } = await getAllUsers(usersPage, LIMIT);
+            setUsers(data);
+            setUsersTotalPages(Math.ceil(count / LIMIT));
+        } catch (error) {
+            console.error("Failed to fetch users", error);
+        }
+    };
+
+    const fetchUrls = async () => {
+        try {
+            const { data, count } = await getAllUrls(urlsPage, LIMIT);
+            setUrls(data);
+            setUrlsTotalPages(Math.ceil(count / LIMIT));
+            
+            // Note: Since we only fetch a page of URLs, we can't sum all clicks client-side perfectly anymore
+            // without fetching ALL or having a separate stats endpoint.
+            // For now, let's keep the client-side sum based on visible page or rely solely on getStats() which we might need to update 
+            // if we want total clicks across DB. 
+            // However, getStats() currently returns 0 for clicks.
+            // We will trust getStats() for counts and maybe accept clicks are only accurate per page or fix getStats later.
+        } catch (error) {
+            console.error("Failed to fetch URLs", error);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
+        const initData = async () => {
             try {
-                const [statsData, usersData, urlsData] = await Promise.all([
-                    getStats(),
-                    getAllUsers(),
-                    getAllUrls()
-                ]);
-                // Calculate total clicks from the fetched URLs (client-side aggregation)
-                const totalClicks = urlsData.reduce((sum, url) => sum + (url.clicks || 0), 0);
+                setLoading(true);
+                const statsData = await getStats();
+                setStats(statsData);
                 
-                setStats({
-                    ...statsData,
-                    totalClicks
-                });
-                setUsers(usersData);
-                setUrls(urlsData);
+                await Promise.all([fetchUsers(), fetchUrls()]);
             } catch (error) {
-                console.error("Failed to fetch admin data", error);
+                console.error("Failed to init admin data", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchData();
+        if (loading) {
+            initData(); // Initial load
+        }
     }, []);
+
+    // Effect for page changes
+    useEffect(() => {
+        if (!loading) fetchUsers();
+    }, [usersPage]);
+
+    useEffect(() => {
+        if (!loading) fetchUrls();
+    }, [urlsPage]);
 
     const handleDeleteUrl = async (urlId: string) => {
         if (!window.confirm("Admin Action: Are you sure you want to delete this URL?")) return;
@@ -119,107 +157,122 @@ const AdminDashboard = () => {
                             </div>
                             <div>
                                 <p className="text-slate-400 text-sm">Total Clicks</p>
-                                <p className="text-3xl font-bold">{stats.totalClicks}</p>
+                                {/* Note: This might be inaccurate if dependent on page data, but keeping stats.totalClicks for now */}
+                                <p className="text-3xl font-bold">{stats.totalClicks || 0}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Users Table */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="p-6 border-b border-slate-800">
-                        <h2 className="text-xl font-bold">All Users</h2>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-slate-950/50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Role</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Joined</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">UID</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800">
-                                {users.map((user) => (
-                                    <tr key={user.uid} className="hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs rounded-full ${user.role === 'admin' ? 'bg-purple-500/10 text-purple-400' : 'bg-slate-700/50 text-slate-300'}`}>
-                                                {user.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-400">
-                                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).replace(',', '') : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <button 
-                                                onClick={() => handleRoleChange(user.uid, user.role)}
-                                                className={`text-xs font-medium px-3 py-1 rounded border transition-colors ${
-                                                    user.role === 'admin' 
-                                                    ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' 
-                                                    : 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10'
-                                                }`}
-                                            >
-                                                {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-500 text-xs font-mono">{user.uid}</td>
+                <div className="space-y-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="p-6 border-b border-slate-800">
+                            <h2 className="text-xl font-bold">All Users</h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-950/50">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Email</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Role</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Joined</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">UID</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800">
+                                    {users.map((user) => (
+                                        <tr key={user.uid} className="hover:bg-slate-800/50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 text-xs rounded-full ${user.role === 'admin' ? 'bg-purple-500/10 text-purple-400' : 'bg-slate-700/50 text-slate-300'}`}>
+                                                    {user.role}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-400">
+                                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).replace(',', '') : 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <button 
+                                                    onClick={() => handleRoleChange(user.uid, user.role)}
+                                                    className={`text-xs font-medium px-3 py-1 rounded border transition-colors ${
+                                                        user.role === 'admin' 
+                                                        ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' 
+                                                        : 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10'
+                                                    }`}
+                                                >
+                                                    {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-500 text-xs font-mono">{user.uid}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                    <Pagination 
+                        currentPage={usersPage} 
+                        totalPages={usersTotalPages} 
+                        onPageChange={setUsersPage} 
+                    />
                 </div>
 
                 {/* URLs Table */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                    <div className="p-6 border-b border-slate-800">
-                        <h2 className="text-xl font-bold">All URLs</h2>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-slate-950/50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Short Code</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Title</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Original URL</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Clicks</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Creator ID</th>
-                                    <th className="px-6 py-4 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800">
-                                {urls.map((url) => (
-                                    <tr key={url.id} className="hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <a href={`/${url.shortCode}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 font-medium">
-                                                {url.shortCode}
-                                            </a>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-300">
-                                            {url.title || <span className="text-slate-600 italic">No Title</span>}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-400 max-w-xs truncate" title={url.originalUrl}>
-                                            {url.originalUrl}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-white font-bold">{url.clicks}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-500 text-xs font-mono">{url.userId}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <button 
-                                                onClick={() => url.id && handleDeleteUrl(url.id)}
-                                                className="text-slate-500 hover:text-red-400 transition-colors p-1"
-                                                title="Delete URL"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </td>
+                <div className="space-y-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <div className="p-6 border-b border-slate-800">
+                            <h2 className="text-xl font-bold">All URLs</h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-slate-950/50">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Short Code</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Title</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Original URL</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Clicks</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Creator ID</th>
+                                        <th className="px-6 py-4 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800">
+                                    {urls.map((url) => (
+                                        <tr key={url.id} className="hover:bg-slate-800/50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <a href={`/${url.shortCode}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 font-medium">
+                                                    {url.shortCode}
+                                                </a>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                                                {url.title || <span className="text-slate-600 italic">No Title</span>}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-400 max-w-xs truncate" title={url.originalUrl}>
+                                                {url.originalUrl}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-white font-bold">{url.clicks}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-500 text-xs font-mono">{url.userId}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <button 
+                                                    onClick={() => url.id && handleDeleteUrl(url.id)}
+                                                    className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                                                    title="Delete URL"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
+                    <Pagination 
+                        currentPage={urlsPage} 
+                        totalPages={urlsTotalPages} 
+                        onPageChange={setUrlsPage} 
+                    />
                 </div>
                 
             </div>

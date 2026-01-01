@@ -11,15 +11,19 @@ export interface UrlData {
     title?: string;
 }
 
-export const getAllUrls = async (): Promise<UrlData[]> => {
-    const { data, error } = await supabase
+export const getAllUrls = async (page: number = 1, limit: number = 10): Promise<{ data: UrlData[], count: number }> => {
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
+
+    const { data, error, count } = await supabase
         .from('urls')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(start, end);
 
     if (error) throw error;
 
-    return (data || []).map(mapUrlData);
+    return { data: (data || []).map(mapUrlData), count: count || 0 };
 };
 
 export const createShortUrl = async (originalUrl: string, userId: string, customCode?: string, title?: string): Promise<string> => {
@@ -54,16 +58,20 @@ export const createShortUrl = async (originalUrl: string, userId: string, custom
     return shortCode;
 };
 
-export const getUserUrls = async (userId: string): Promise<UrlData[]> => {
-    const { data, error } = await supabase
+export const getUserUrls = async (userId: string, page: number = 1, limit: number = 10): Promise<{ data: UrlData[], count: number }> => {
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
+
+    const { data, error, count } = await supabase
         .from('urls')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(start, end);
 
     if (error) throw error;
 
-    return (data || []).map(mapUrlData);
+    return { data: (data || []).map(mapUrlData), count: count || 0 };
 };
 
 export const getUrlByShortCode = async (shortCode: string): Promise<UrlData | null> => {

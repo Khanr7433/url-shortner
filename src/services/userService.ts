@@ -43,20 +43,26 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     };
 };
 
-export const getAllUsers = async (): Promise<UserProfile[]> => {
-    const { data, error } = await supabase
+export const getAllUsers = async (page: number = 1, limit: number = 10): Promise<{ data: UserProfile[], count: number }> => {
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
+
+    const { data, error, count } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(start, end);
 
     if (error) throw error;
 
-    return (data || []).map(user => ({
+    const users = (data || []).map(user => ({
         uid: user.id,
         email: user.email,
         role: user.role as 'admin' | 'user',
         createdAt: user.created_at
     }));
+
+    return { data: users, count: count || 0 };
 };
 
 export const getStats = async () => {

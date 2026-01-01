@@ -5,84 +5,101 @@ import { createShortUrl, getUserUrls, deleteShortUrl, type UrlData } from "../se
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Link2, Copy, ExternalLink, BarChart2, Trash2 } from "lucide-react";
+import Pagination from "../components/Pagination";
 
 const Dashboard = () => {
-    const { user } = useAuth();
-    const [originalUrl, setOriginalUrl] = useState("");
+    const { user } = useAuth(); // Removed logOut as it might not be needed or exists differently
+    const [url, setUrl] = useState("");
     const [title, setTitle] = useState("");
+    const [customAlias, setCustomAlias] = useState("");
     const [urls, setUrls] = useState<UrlData[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [fetching, setFetching] = useState(true);
+    const [loading, setLoading] = useState(true); // Loading for fetching
+    const [shortenLoading, setShortenLoading] = useState(false); // Loading for shorten action
     const [error, setError] = useState("");
+
+    // Pagination State
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const LIMIT = 10;
 
     useEffect(() => {
         if (user) {
             fetchUrls();
         }
-    }, [user]);
+    }, [user, page]);
 
     const fetchUrls = async () => {
-        if (!user) return;
+        if (!user?.uid) return;
         try {
-            const data = await getUserUrls(user.uid);
+            const { data, count } = await getUserUrls(user.uid, page, LIMIT);
             setUrls(data);
+            setTotalPages(Math.ceil(count / LIMIT));
         } catch (error) {
-            console.error(error);
+            console.error("Failed to fetch URLs", error);
         } finally {
-            setFetching(false);
+            setLoading(false);
         }
     };
 
     const handleShorten = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || !url) return;
         setError("");
-        setLoading(true);
+        setShortenLoading(true);
 
         // Basic URL validation
-        let urlToShorten = originalUrl;
+        let urlToShorten = url;
         if (!/^https?:\/\//i.test(urlToShorten)) {
             urlToShorten = 'https://' + urlToShorten;
         }
 
-        const promise = createShortUrl(urlToShorten, user.uid, undefined, title);
+        try {
+            await createShortUrl(urlToShorten, user.uid, customAlias || undefined, title || undefined);
+            
+            toast.success("URL Shortened!", {
+                icon: '🚀',
+                style: {
+                    background: '#0f172a',
+                    color: '#fff',
+                    border: '1px solid #1e293b'
+                }
+            });
 
-        toast.promise(promise, {
-            loading: 'Shortening URL...',
-            success: 'URL shortened successfully!',
-            error: 'Failed to shorten URL'
-        }).then(async () => {
-             setOriginalUrl("");
-             setTitle("");
-             await fetchUrls(); // Refresh list
-        }).catch((err) => {
-             if (err instanceof Error) {
-                setError(err.message);
-             } else {
-                setError("Failed to shorten URL");
-             }
-        }).finally(() => {
-            setLoading(false);
-        });
+            await fetchUrls(); 
+            setUrl("");
+            setTitle("");
+            setCustomAlias("");
+        } catch (err: any) {
+             setError(err.message || "Failed to shorten URL");
+             toast.error(err.message || "Failed");
+        } finally {
+            setShortenLoading(false);
+        }
     };
 
-    const copyToClipboard = (shortCode: string) => {
-        const fullKey = `${window.location.origin}/${shortCode}`;
-        navigator.clipboard.writeText(fullKey);
-        toast.success("Link copied!");
+    const handleCopy = (shortCode: string) => {
+        const fullUrl = `${window.location.origin}/${shortCode}`;
+        navigator.clipboard.writeText(fullUrl);
+        toast.success("Copied to clipboard!");
     };
 
-    const handleDelete = async (urlId: string) => {
-        if (!window.confirm("Are you sure you want to delete this URL? This action cannot be undone.")) return;
+    const handleDelete = async (id: string) => {
+        if (!window.confirm("Are you sure you want to delete this URL?")) return;
         
-        const promise = deleteShortUrl(urlId);
+        const promise = deleteShortUrl(id);
 
         toast.promise(promise, {
             loading: 'Deleting URL...',
             success: 'URL deleted successfully',
             error: 'Failed to delete URL'
         }).then(() => {
-            setUrls(urls.filter(url => url.id !== urlId));
+            setUrls(urls.filter(url => url.id !== id));
+            // Optional: Handle page empty logic
+            if (urls.length === 1 && page > 1) {
+                setPage(p => p - 1);
+            } else {
+                fetchUrls();
+            }
         }).catch((error) => {
             console.error("Failed to delete URL", error);
         });
@@ -112,20 +129,20 @@ const Dashboard = () => {
                         <form onSubmit={handleShorten} className="flex flex-col md:flex-row gap-4">
                             <div className="flex-1 space-y-4">
                                 <Input 
-                                    placeholder="Paste your long URL here (e.g., https://super-long-url.com/very/long/path)" 
-                                    value={originalUrl}
-                                    onChange={(e) => setOriginalUrl(e.target.value)}
+                                    placeholder="Paste your long URL here" 
+                                    value={url}
+                                    onChange={(e) => setUrl(e.target.value)}
                                     className="h-12 text-base md:text-lg bg-slate-950/50"
                                     required
                                 />
                                 <Input 
-                                    placeholder="Link Title (Optional) - e.g., My Portfolio" 
+                                    placeholder="Link Title (Optional)" 
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     className="h-10 text-sm bg-slate-950/50"
                                 />
                             </div>
-                            <Button size="lg" type="submit" isLoading={loading} className="h-auto px-8 self-start md:self-stretch">
+                            <Button size="lg" type="submit" isLoading={shortenLoading} className="h-auto px-8 self-start md:self-stretch">
                                 Shorten
                             </Button>
                         </form>
@@ -137,7 +154,7 @@ const Dashboard = () => {
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium text-slate-300">Your Links</h3>
                     
-                    {fetching ? (
+                    {loading ? (
                         <div className="text-center py-12 text-slate-500">Loading links...</div>
                     ) : urls.length === 0 ? (
                         <div className="text-center py-12 bg-slate-900/30 rounded-xl border border-dashed border-slate-800 text-slate-500">
@@ -166,7 +183,7 @@ const Dashboard = () => {
                                                 variant="ghost" 
                                                 size="icon" 
                                                 className="h-6 w-6 text-slate-500 hover:text-white"
-                                                onClick={() => copyToClipboard(url.shortCode)}
+                                                onClick={() => handleCopy(url.shortCode)}
                                                 title="Copy to clipboard"
                                             >
                                                 <Copy className="w-3.5 h-3.5" />
@@ -203,6 +220,12 @@ const Dashboard = () => {
                         </div>
                     )}
                 </div>
+                
+                <Pagination 
+                    currentPage={page} 
+                    totalPages={totalPages} 
+                    onPageChange={setPage} 
+                />
             </div>
         </div>
     );

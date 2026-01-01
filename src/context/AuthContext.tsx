@@ -90,28 +90,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.log(`AuthContext: Syncing role ${currentRole} -> ${newRole}`);
                 // Swallow errors here to prevent crashing the app on 429s
                 await supabase.auth.updateUser({ data: { role: newRole } }).catch(err => {
-                    console.warn("AuthContext: Role sync skipped/failed", err.message);
+                    // console.warn("AuthContext: Role sync skipped/failed", err.message);
                 });
             } else {
-                console.log("AuthContext: Role already synced.");
+                // console.log("AuthContext: Role already synced.");
             }
         };
 
         try {
-            // Race condition: If DB takes > 2s, just use session data (fallback)
+            // Race condition: If DB takes > 5s, just use session data (fallback)
             const profilePromise = getUserProfile(uid);
             
             // Allow the profile promise to update state even if it loses the race (lazy update)
             profilePromise.then(lateProfile => {
                 if (lateProfile && lateProfile.role) {
-                     console.log("AuthContext: Late profile update received", lateProfile.role);
+                     // console.log("AuthContext: Late profile update received", lateProfile.role);
                      setUser(lateProfile);
                      syncRole(lateProfile.role);
                 }
             }).catch(e => console.error("Background profile fetch failed", e));
 
             const timeoutPromise = new Promise<null>((resolve) => 
-                setTimeout(() => resolve(null), 2000)
+                setTimeout(() => resolve(null), 5000)
             );
 
             const profile = await Promise.race([profilePromise, timeoutPromise]);
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     syncRole(profile.role);
                 }
             } else {
-                console.warn("Profile not found or DB slow. Creating/Using fallback...");
+                console.log("Profile fetch taking longer than 5s. Using session fallback.");
                 createUserProfile(uid, email).catch(console.error);
                 setUser({ uid, email, role: 'user', createdAt: new Date() });
             }
