@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Link as LinkIcon, LogOut, LayoutDashboard, Shield } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { Button } from "./ui/Button";
 import toast from "react-hot-toast";
 

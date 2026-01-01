@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { createShortUrl, getUserUrls, deleteShortUrl, type UrlData } from "../services/urlService";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
