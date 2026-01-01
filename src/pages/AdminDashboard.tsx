@@ -24,7 +24,13 @@ const AdminDashboard = () => {
                     getAllUsers(),
                     getAllUrls()
                 ]);
-                setStats(statsData);
+                // Calculate total clicks from the fetched URLs (client-side aggregation)
+                const totalClicks = urlsData.reduce((sum, url) => sum + (url.clicks || 0), 0);
+                
+                setStats({
+                    ...statsData,
+                    totalClicks
+                });
                 setUsers(usersData);
                 setUrls(urlsData);
             } catch (error) {

@@ -62,6 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log("AuthContext: Auth State Change:", event);
+            
+            // Prevent infinite loop: updateUser triggers USER_UPDATED, which would call fetchProfile again
+            if (event === 'USER_UPDATED') return;
+
             if (session?.user) {
                 await fetchProfile(session.user.id, session.user.email!);
             } else {
@@ -77,9 +81,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const fetchProfile = async (uid: string, email: string) => {
+        // Helper: Only update Supabase if the role actually changed
+        const syncRole = async (newRole: string) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const currentRole = session?.user?.user_metadata?.role;
+            
+            if (currentRole !== newRole) {
+                console.log(`AuthContext: Syncing role ${currentRole} -> ${newRole}`);
+                // Swallow errors here to prevent crashing the app on 429s
+                await supabase.auth.updateUser({ data: { role: newRole } }).catch(err => {
+                    console.warn("AuthContext: Role sync skipped/failed", err.message);
+                });
+            } else {
+                console.log("AuthContext: Role already synced.");
+            }
+        };
+
         try {
-             // Race condition: If DB takes > 2s, just use session data (fallback)
+            // Race condition: If DB takes > 2s, just use session data (fallback)
             const profilePromise = getUserProfile(uid);
+            
+            // Allow the profile promise to update state even if it loses the race (lazy update)
+            profilePromise.then(lateProfile => {
+                if (lateProfile && lateProfile.role) {
+                     console.log("AuthContext: Late profile update received", lateProfile.role);
+                     setUser(lateProfile);
+                     syncRole(lateProfile.role);
+                }
+            }).catch(e => console.error("Background profile fetch failed", e));
+
             const timeoutPromise = new Promise<null>((resolve) => 
                 setTimeout(() => resolve(null), 2000)
             );
@@ -88,6 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             if (profile) {
                 setUser(profile);
+                if (profile.role) {
+                    syncRole(profile.role);
+                }
             } else {
                 console.warn("Profile not found or DB slow. Creating/Using fallback...");
                 createUserProfile(uid, email).catch(console.error);
