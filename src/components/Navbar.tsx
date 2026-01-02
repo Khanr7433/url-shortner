@@ -21,13 +21,13 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
+        <nav className="fixed top-0 w-full z-50 glass border-b-0">
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                        <LinkIcon className="w-5 h-5 text-white" />
+                <Link to="/" className="flex items-center gap-3 group">
+                    <div className="p-2 bg-blue-600/20 rounded-xl group-hover:bg-blue-600/30 transition-colors duration-300 ring-1 ring-blue-500/20">
+                        <LinkIcon className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
                     </div>
-                    <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    <span className="font-heading font-bold text-xl tracking-tight text-gradient">
                         SwiftLink
                     </span>
                 </Link>
@@ -37,24 +37,24 @@ const Navbar = () => {
                         <>
                             {role === 'admin' && (
                                 <Link to="/admin">
-                                    <Button variant="ghost" size="sm" className="hidden md:flex">
-                                        <Shield className="w-4 h-4 mr-2" />
+                                    <Button variant="ghost" size="sm" className="hidden md:flex hover:bg-white/5 data-[active]:bg-white/10">
+                                        <Shield className="w-4 h-4 mr-2 text-indigo-400" />
                                         Admin
                                     </Button>
                                 </Link>
                             )}
                             
                             <Link to="/dashboard">
-                                <Button variant="ghost" size="sm" className="hidden md:flex">
-                                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                                <Button variant="ghost" size="sm" className="hidden md:flex hover:bg-white/5">
+                                    <LayoutDashboard className="w-4 h-4 mr-2 text-blue-400" />
                                     Dashboard
                                 </Button>
                             </Link>
 
-                            <div className="h-6 w-px bg-slate-800 mx-2 hidden md:block"></div>
+                            <div className="h-6 w-px bg-white/10 mx-2 hidden md:block"></div>
 
                             <div className="flex items-center gap-3">
-                                <span className="text-sm text-slate-400 hidden sm:block">
+                                <span className="text-sm text-slate-400 hidden sm:block font-medium">
                                     {user.email}
                                 </span>
                                 <Button 
@@ -62,6 +62,7 @@ const Navbar = () => {
                                     size="sm" 
                                     onClick={handleLogout}
                                     title="Logout"
+                                    className="hover:scale-105 transition-transform"
                                 >
                                     <LogOut className="w-4 h-4 md:mr-2" />
                                     <span className="hidden md:inline">Logout</span>
@@ -71,12 +72,12 @@ const Navbar = () => {
                     ) : (
                         <>
                             <Link to="/login">
-                                <Button variant="ghost" className="text-slate-400 hover:text-white">
+                                <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
                                     Log in
                                 </Button>
                             </Link>
                             <Link to="/signup">
-                                <Button className="bg-white text-slate-950 hover:bg-slate-200">
+                                <Button className="bg-blue-600 hover:bg-blue-500 text-white border-0 shadow-lg shadow-blue-500/20 hover:scale-105 transition-all duration-300">
                                     Sign up
                                 </Button>
                             </Link>

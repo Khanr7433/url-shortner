@@ -42,11 +42,24 @@ const RedirectHandler = () => {
 
     if (errorMessage) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-4 text-center">
-                <h1 className="text-4xl font-bold mb-4 text-red-500">404</h1>
-                <p className="text-xl text-slate-400">Short URL not found or expired.</p>
-                <p className="text-sm text-slate-600 mt-4">Debug: {errorMessage}</p>
-                <a href="/" className="mt-8 px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">Go Home</a>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-4 text-center relative overflow-hidden">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+                
+                <div className="glass p-12 rounded-3xl border-red-500/20 max-w-md w-full relative z-10">
+                    <h1 className="text-6xl font-heading font-bold mb-4 text-red-500 drop-shadow-lg">404</h1>
+                    <p className="text-2xl font-semibold mb-2">Link Not Found</p>
+                    <p className="text-slate-400 mb-8">The link you are looking for has expired or does not exist.</p>
+                    
+                    {import.meta.env.DEV && (
+                        <div className="bg-red-950/50 border border-red-900/50 p-3 rounded-lg text-xs text-red-300 font-mono mb-6 break-all">
+                           Error: {errorMessage}
+                        </div>
+                    )}
+                    
+                    <a href="/" className="inline-flex items-center justify-center px-8 py-3 bg-white text-slate-950 font-bold rounded-xl hover:bg-slate-200 transition-colors shadow-lg shadow-white/10">
+                        Go to Homepage
+                    </a>
+                </div>
             </div>
         );
     }
@@ -54,61 +67,71 @@ const RedirectHandler = () => {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-6 relative overflow-hidden">
             {/* Background Effects */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 opacity-20 pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-[120px] animate-pulse"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[120px] animate-pulse delay-1000"></div>
             </div>
 
-            <div className="z-10 flex flex-col items-center text-center max-w-lg w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-8 rounded-2xl shadow-2xl">
+            <div className="z-10 flex flex-col items-center text-center max-w-lg w-full glass p-10 rounded-3xl shadow-2xl border border-white/5">
                 {!urlData ? (
-                    <>
-                        <Loader2 className="w-12 h-12 animate-spin text-blue-500 mb-6" />
-                        <p className="text-slate-400 text-lg">Locating destination...</p>
-                    </>
+                    <div className="flex flex-col items-center py-10">
+                        <Loader2 className="w-16 h-16 animate-spin text-blue-500 mb-6" />
+                        <h2 className="text-2xl font-heading font-bold mb-2">Locating Destination</h2>
+                        <p className="text-slate-400 text-lg">Please wait a moment...</p>
+                    </div>
                 ) : (
                     <>
-                        <div className="relative mb-8">
-                            <svg className="w-32 h-32 transform -rotate-90">
+                        <div className="relative mb-10">
+                            {/* SVG Timer */}
+                            <svg className="w-40 h-40 transform -rotate-90">
                                 <circle
                                     className="text-slate-800"
-                                    strokeWidth="8"
+                                    strokeWidth="6"
                                     stroke="currentColor"
                                     fill="transparent"
-                                    r="58"
-                                    cx="64"
-                                    cy="64"
+                                    r="70"
+                                    cx="80"
+                                    cy="80"
                                 />
                                 <circle
-                                    className="text-blue-500 transition-all duration-1000 ease-linear"
-                                    strokeWidth="8"
-                                    strokeDasharray={365}
-                                    strokeDashoffset={365 - (365 * countdown) / 10}
+                                    className="text-blue-500 transition-all duration-1000 ease-linear shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                                    strokeWidth="6"
+                                    strokeDasharray={440}
+                                    strokeDashoffset={440 - (440 * countdown) / 10}
                                     strokeLinecap="round"
                                     stroke="currentColor"
                                     fill="transparent"
-                                    r="58"
-                                    cx="64"
-                                    cy="64"
+                                    r="70"
+                                    cx="80"
+                                    cy="80"
+                                    style={{ filter: "drop-shadow(0 0 4px rgba(59, 130, 246, 0.5))" }}
                                 />
                             </svg>
-                            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
-                                <span className="text-4xl font-bold font-mono">{countdown}</span>
+                            <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
+                                <span className="text-5xl font-heading font-bold text-white">{countdown}</span>
+                                <span className="text-xs text-slate-500 uppercase tracking-widest mt-1">Seconds</span>
                             </div>
                         </div>
 
-                        <h2 className="text-2xl font-bold mb-2">Redirecting You</h2>
-                        <p className="text-slate-400 mb-6">You are being redirected to:</p>
+                        <h2 className="text-3xl font-heading font-bold mb-3 text-white">Redirecting You</h2>
+                        <p className="text-slate-400 mb-8">You are being taken to your destination.</p>
                         
-                        <div className="bg-slate-950/50 p-4 rounded-lg border border-slate-800 w-full mb-8 break-all">
-                            <p className="text-blue-400 font-medium font-mono text-sm max-h-24 overflow-y-auto custom-scrollbar">
+                        <div className="bg-slate-900/60 p-5 rounded-2xl border border-white/5 w-full mb-2 shadow-inner">
+                            <p className="text-blue-400 font-medium font-mono text-sm break-all">
                                 {urlData.originalUrl}
                             </p>
                         </div>
+                        <p className="text-xs text-slate-500 mt-4">
+                            Not redirecting? <a href={urlData.originalUrl} className="text-blue-400 hover:underline">Click here</a>
+                        </p>
                     </>
                 )}
+            </div>
+            
+            <div className="absolute bottom-8 text-slate-600 text-sm font-medium">
+                Powered by <span className="text-slate-400">SwiftLink</span>
             </div>
         </div>
     );
 };
-
 export default RedirectHandler;

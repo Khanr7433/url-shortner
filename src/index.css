@@ -4,7 +4,16 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-white overflow-x-hidden;
+    @apply bg-slate-950 text-white overflow-x-hidden font-sans;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
   }
 }
 
@@ -26,8 +35,21 @@
   @apply bg-slate-700;
 }
 
-/* Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: #1e293b #020617; /* slate-800 slate-950 */
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-xl;
+  }
+  
+  .glass-hover {
+    @apply hover:bg-slate-800/60 transition-all duration-300;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent;
+  }
 }

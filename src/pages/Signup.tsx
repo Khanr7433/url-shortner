@@ -62,23 +62,26 @@ const Signup = () => {
     };
 
     return (
-        <div className="flex-1 flex items-center justify-center p-4 py-12">
-            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-xl backdrop-blur-sm bg-opacity-80">
+        <div className="flex-1 flex items-center justify-center p-4 py-12 relative overflow-hidden">
+             {/* Background Elements */}
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] -z-10"></div>
+
+            <div className="w-full max-w-md glass rounded-2xl p-8 md:p-10 relative z-10 animate-fade-in-up">
                 <div className="flex flex-col items-center mb-8">
-                    <div className="p-3 bg-purple-500/10 rounded-full mb-4">
-                        <UserPlus className="w-8 h-8 text-purple-500" />
+                    <div className="p-4 bg-purple-600/20 rounded-2xl mb-6 ring-1 ring-purple-500/20 shadow-lg shadow-purple-500/20">
+                        <UserPlus className="w-8 h-8 text-purple-400" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Create Account</h2>
-                    <p className="text-slate-400 mt-2">Join us to start shortening URLs</p>
+                    <h2 className="text-3xl font-heading font-bold text-white text-center">Create Account</h2>
+                    <p className="text-slate-400 mt-3 text-center">Join us to start shortening URLs</p>
                 </div>
 
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm">
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6 text-sm flex items-center justify-center">
                         {error}
                     </div>
                 )}
 
-                <form onSubmit={handleSignup} className="space-y-4">
+                <form onSubmit={handleSignup} className="space-y-5">
                     <Input 
                         label="Email Address"
                         type="email" 
@@ -86,6 +89,7 @@ const Signup = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        className="bg-slate-900/50"
                     />
                     
                     <Input 
@@ -95,6 +99,7 @@ const Signup = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        className="bg-slate-900/50"
                     />
 
                      <Input 
@@ -104,18 +109,19 @@ const Signup = () => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
+                        className="bg-slate-900/50"
                     />
 
-                    <Button type="submit" className="w-full" isLoading={loading}>
+                    <Button type="submit" className="w-full text-lg font-semibold shadow-xl shadow-purple-600/20 hover:bg-purple-600 border-purple-500/50" isLoading={loading}>
                         Sign Up
                     </Button>
                 </form>
 
-                <div className="mt-6 text-center text-sm text-slate-400">
+                <div className="mt-8 text-center text-sm text-slate-400">
                     Already have an account?{" "}
                     <button 
                         onClick={() => navigate("/login")}
-                        className="text-blue-400 hover:text-blue-300 font-medium"
+                        className="text-purple-400 hover:text-purple-300 font-medium hover:underline transition-all"
                     >
                         Sign in
                     </button>
