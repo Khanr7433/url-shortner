@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { createShortUrl, getUserUrls, deleteShortUrl, type UrlData } from "../services/urlService";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { Link2, Copy, ExternalLink, BarChart2, Trash2 } from "lucide-react";
+import { Link2, Copy, ExternalLink, BarChart2, Trash2, Share2 } from "lucide-react";
 import Pagination from "../components/Pagination";
 
 const Dashboard = () => {
@@ -74,6 +74,25 @@ const Dashboard = () => {
              toast.error(err.message || "Failed");
         } finally {
             setShortenLoading(false);
+        }
+    };
+
+    const handleShare = async (shortCode: string, title?: string) => {
+        const fullUrl = `${window.location.origin}/${shortCode}`;
+        
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: title || 'Shortened URL',
+                    text: 'Check out this link!',
+                    url: fullUrl,
+                });
+            } catch (error) {
+                console.log('Error sharing:', error);
+            }
+        } else {
+            handleCopy(shortCode); // Fallback to copy
+            toast.success("Link copied to clipboard (Sharing not supported)");
         }
     };
 
@@ -228,6 +247,15 @@ const Dashboard = () => {
                                                 title="Copy to clipboard"
                                             >
                                                 <Copy className="w-4 h-4" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-9 w-9 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10"
+                                                onClick={() => handleShare(url.shortCode, url.title)}
+                                                title="Share URL"
+                                            >
+                                                <Share2 className="w-4 h-4" />
                                             </Button>
                                             <Button 
                                                 variant="ghost" 
