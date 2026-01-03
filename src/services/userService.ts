@@ -75,7 +75,7 @@ export const getStats = async () => {
         .select('*', { count: 'exact', head: true });
 
     // Fetch clicks for all URLs to calculate total (optimized to select only clicks column)
-    const { data: clicksData, error: clicksError } = await supabase
+    const { data: clicksData } = await supabase
         .from('urls')
         .select('clicks');
 

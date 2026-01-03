@@ -87,8 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (currentRole !== newRole) {
                 console.log(`AuthContext: Syncing role ${currentRole} -> ${newRole}`);
                 // Swallow errors here to prevent crashing the app on 429s
-                await supabase.auth.updateUser({ data: { role: newRole } }).catch(err => {
-                    // console.warn("AuthContext: Role sync skipped/failed", err.message);
+                await supabase.auth.updateUser({ data: { role: newRole } }).catch(() => {
+                    // console.warn("AuthContext: Role sync skipped/failed");
                 });
             } else {
                 // console.log("AuthContext: Role already synced.");

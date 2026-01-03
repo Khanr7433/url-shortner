@@ -1,0 +1,47 @@
+name: "🚀 Deploy to https://swiftlink.free.nf/"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: "🚀 Deploy to https://swiftlink.free.nf/"
+    runs-on: ubuntu-latest
+    environment: Production
+
+    steps:
+      - name: 📂 Get latest code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 📝 Verify environment variables
+        run: |
+          echo "Checking if environment variables are set..."
+          echo "VITE_SUPABASE_URL length: ${#VITE_SUPABASE_URL}"
+          echo "VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY length: ${#VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY}"
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY }}
+
+      - name: 🔨 Build project
+        run: npm run build
+
+      - name: 📂 Sync files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /htdocs/
+          local-dir: ./dist/
+          retries: 3
+          retryDelay: 10
