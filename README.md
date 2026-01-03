@@ -2,6 +2,8 @@
 
 SwiftLink is a sophisticated URL shortening application built with modern web technologies. It features a premium, glassmorphic user interface, secure authentication, and real-time analytics, powered by Supabase.
 
+[**🚀 Live Demo**](https://swiftlink.free.nf/)
+
 ## ✨ Key Features
 
 - **Premium Design System**:
